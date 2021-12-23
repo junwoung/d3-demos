@@ -1,7 +1,12 @@
 import React, { useEffect } from "react";
 import { scaleLinear, scaleBand, max, range, axisLeft, axisBottom } from "d3";
 import { drawSvg, clearSvg } from "../../utils";
-import { getTotal, getRectMaxHeight, getRectMaxWidth } from "./helper";
+import {
+  getTotal,
+  getRectMaxHeight,
+  getRectMaxWidth,
+  DrawPanel,
+} from "./helper";
 import "./index.css";
 
 const scores = [
@@ -11,6 +16,9 @@ const scores = [
   { math: 130, chn: 95, eng: 80 },
   { math: 46, chn: 42, eng: 72 },
 ];
+
+export type ScoreItem = typeof scores[number];
+const scorePannel = new DrawPanel<ScoreItem>({ width: 100, height: 100 });
 
 const WIDTH = 300;
 const HEIGHT = 200;
@@ -68,6 +76,11 @@ export const drawRect = (config = defaultConfig) => {
     .data(dataSet)
     .enter()
     .append("rect")
+    .on("mousemove", (e, data) => {
+      // console.log(e, data);
+      scorePannel.draw(data, { x: e.clientX + 2, y: e.clientY + 2 });
+    })
+    .on("mouseleave", () => scorePannel.off())
     // 设置rect 的x,y坐标起点
     .attr(
       "x",
@@ -82,12 +95,47 @@ export const drawRect = (config = defaultConfig) => {
     })
     // 设置宽高
     .attr("width", rectConfig.width)
+    .attr("height", 0)
+    .transition()
+    .delay(0)
+    .duration(1500)
     .attr("height", (data) => {
       // 因为Y轴的坐标系定义是反方向的，所以需要拿可绘制的最大高度-缩放后留白区域的高度
       return getRectMaxHeight(svgConfig) - scaleY(getTotal(data));
     })
     .attr("fill", (data) => {
       return rectConfig.color(data);
+    })
+    .transition()
+    .delay(100)
+    .duration(500)
+    .attr("fill", (data) => {
+      return getTotal(data) > 250 ? "rgb(0,180,42)" : "rgb(245, 63, 63)";
+    });
+
+  // 显示具体高度数据
+  svg
+    .selectAll("rext")
+    .data(dataSet)
+    .enter()
+    .append("text")
+    .attr(
+      "x",
+      (_, idx) =>
+        idx * rectConfig.x +
+        (rectConfig.x - rectConfig.width) / 2 +
+        svgConfig.padding.left
+    )
+    .attr("y", (data) => {
+      return scaleY(getTotal(data)) + svgConfig.padding.top;
+    })
+    .attr("width", rectConfig.width)
+    .attr("height", (data) => {
+      return getRectMaxHeight(svgConfig) - scaleY(getTotal(data));
+    })
+    .attr("class", "rect-text")
+    .text((data) => {
+      return getTotal(data);
     });
 
   // 添加坐标轴
