@@ -1,11 +1,20 @@
-import React, { useEffect } from "react";
-import { scaleLinear, scaleBand, max, range, axisLeft, axisBottom } from "d3";
+import React, { useEffect, useCallback } from "react";
+import {
+  select,
+  scaleLinear,
+  scaleBand,
+  max,
+  range,
+  axisLeft,
+  axisBottom,
+} from "d3";
 import { drawSvg, clearSvg } from "../../utils";
 import {
   getTotal,
   getRectMaxHeight,
   getRectMaxWidth,
   DrawPanel,
+  downloadSvg,
 } from "./helper";
 import "./index.css";
 
@@ -77,18 +86,17 @@ export const drawRect = (config = defaultConfig) => {
     .enter()
     .append("rect")
     .on("mousemove", (e, data) => {
-      // console.log(e, data);
       scorePannel.draw(data, { x: e.clientX + 2, y: e.clientY + 2 });
     })
     .on("mouseleave", () => scorePannel.off())
     // 设置rect 的x,y坐标起点
-    .attr(
-      "x",
-      (_, idx) =>
+    .attr("x", function (_, idx) {
+      return (
         idx * rectConfig.x +
         (rectConfig.x - rectConfig.width) / 2 +
         svgConfig.padding.left
-    )
+      );
+    })
     .attr("y", (data) => {
       //
       return scaleY(getTotal(data)) + svgConfig.padding.top;
@@ -124,8 +132,10 @@ export const drawRect = (config = defaultConfig) => {
       (_, idx) =>
         idx * rectConfig.x +
         (rectConfig.x - rectConfig.width) / 2 +
-        svgConfig.padding.left
+        svgConfig.padding.left +
+        rectConfig.width / 2
     )
+    .attr("text-anchor", "middle")
     .attr("y", (data) => {
       return scaleY(getTotal(data)) + svgConfig.padding.top;
     })
@@ -133,7 +143,9 @@ export const drawRect = (config = defaultConfig) => {
     .attr("height", (data) => {
       return getRectMaxHeight(svgConfig) - scaleY(getTotal(data));
     })
-    .attr("class", "rect-text")
+    .attr("fill", "red")
+    .attr("font-size", "12")
+    .attr("transform", "translate(0,-2)")
     .text((data) => {
       return getTotal(data);
     });
@@ -167,5 +179,15 @@ export const Rect: React.FC = () => {
     });
   });
 
-  return <div id="rect-demo"></div>;
+  const handleDownload = useCallback(() => {
+    const svg = select("svg").node();
+    downloadSvg(svg as any);
+  }, []);
+
+  return (
+    <div>
+      <button onClick={handleDownload}>下载</button>
+      <div id="rect-demo"></div>
+    </div>
+  );
 };

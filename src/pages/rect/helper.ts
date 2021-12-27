@@ -96,3 +96,32 @@ export class DrawPanel<T = {}> {
     this.panel = null;
   }
 }
+
+export const downloadSvg = (svg: SVGElement) => {
+  const serializer = new XMLSerializer();
+  const source = `<?xml version="1.0" standalone="no"?>\r\n${serializer.serializeToString(
+    svg
+  )}`;
+
+  const imgSrc = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    source
+  )}`;
+  const canvas = document.createElement("canvas");
+  canvas.width = Number(svg.clientWidth);
+  canvas.height = Number(svg.clientHeight);
+
+  const ctx = canvas!.getContext("2d");
+  const image = new Image();
+  image.src = imgSrc;
+
+  image.onload = () => {
+    ctx?.drawImage(image, 0, 0);
+    const canvasData = canvas?.toDataURL("image/png")!;
+
+    const a = document.createElement("a");
+    a.download = "d3_svg下载.png";
+    a.href = canvasData;
+    document.body.appendChild(a);
+    a.click();
+  };
+};
