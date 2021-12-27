@@ -1,5 +1,6 @@
 import { Selection, BaseType } from "d3";
 import { drawSvg } from "../../utils";
+import { ScoreItem } from "./config";
 
 /** 获取各项之和 */
 export const getTotal = (item: any) => {
@@ -36,6 +37,9 @@ export interface DrawPanelProps {
   height: number;
 }
 
+/**
+ * 封装绘制&更新具体分数modal能力
+ */
 export class DrawPanel<T = {}> {
   panel: Selection<BaseType, unknown, HTMLElement, any> | null;
   width: number;
@@ -47,7 +51,7 @@ export class DrawPanel<T = {}> {
     this.height = props.height;
   }
 
-  draw(data: T, position: PanelPosition) {
+  draw(data: T, position: PanelPosition, key?: keyof typeof SubjectMaps) {
     const { x, y } = position;
 
     if (!this.panel) {
@@ -65,7 +69,7 @@ export class DrawPanel<T = {}> {
     } else {
       this.updatePanelPosition(position);
     }
-    this.updateContent(data);
+    this.updateContent(data, key);
   }
 
   updatePanelPosition(position: PanelPosition) {
@@ -73,21 +77,32 @@ export class DrawPanel<T = {}> {
     this.panel!.attr("style", `top:${y}px;left:${x}px;`);
   }
 
-  updateContent(data: T) {
+  updateContent(data: T, key?: keyof typeof SubjectMaps) {
     if (this.panel) {
       this.panel.selectAll("text").remove();
 
-      Object.keys(data).forEach((item, idx) => {
-        const text = `${SubjectMaps[item as keyof typeof SubjectMaps]}：${
-          (data as any)[item]
-        }`;
+      if (!key) {
+        Object.keys(data).forEach((item, idx) => {
+          const text = `${SubjectMaps[item as keyof typeof SubjectMaps]}：${
+            (data as any)[item]
+          }`;
 
-        this.panel!.insert("text")
+          this.panel!.insert("text")
+            .attr("x", 15)
+            .attr("y", 20 + 30 * idx)
+            .text(text)
+            .attr("fill", "white");
+        });
+      } else {
+        this.panel
+          .insert("text")
           .attr("x", 15)
-          .attr("y", 20 + 30 * idx)
-          .text(text)
+          .attr("y", 20)
+          .text(`${SubjectMaps[key]}：${(data as any)[key]}`)
           .attr("fill", "white");
-      });
+
+        this.panel.attr("height", 30);
+      }
     }
   }
 
@@ -97,6 +112,7 @@ export class DrawPanel<T = {}> {
   }
 }
 
+/** 下载svg成png */
 export const downloadSvg = (svg: SVGElement) => {
   const serializer = new XMLSerializer();
   const source = `<?xml version="1.0" standalone="no"?>\r\n${serializer.serializeToString(
@@ -124,4 +140,29 @@ export const downloadSvg = (svg: SVGElement) => {
     document.body.appendChild(a);
     a.click();
   };
+};
+
+/** 处理分段柱状图 各部分数据高度、定位等数据 */
+export const formatPartRectData = (rawData: ScoreItem, totalHeight: number) => {
+  const total = getTotal(rawData);
+
+  return Object.keys(rawData).reduce(
+    (prev, cur) => {
+      const key = cur as keyof ScoreItem;
+      const rate = rawData[key] / total;
+      const y = prev.reduce((p, c) => p + c.height, 0);
+
+      const item = {
+        key,
+        height: rate * totalHeight,
+        y,
+      };
+      return [...prev, item];
+    },
+    [] as {
+      key: keyof ScoreItem;
+      height: number;
+      y: number;
+    }[]
+  );
 };

@@ -37,4 +37,12 @@ export const getDefaultConfig = () => ({
   },
 });
 
+/** 横坐标配置 */
 export const axisXList = ["一", "二", "三", "四", "五"];
+
+/** 颜色配置 */
+export const colorsMap = {
+  chn: "rgb(0, 180, 42)",
+  eng: "rgb(247, 186, 30)",
+  math: "rgb(245, 63, 63)",
+};
